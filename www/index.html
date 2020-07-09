@@ -1,0 +1,555 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src * data: gap: https://ssl.gstatic.com; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'">
+  <meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta http-equiv="Content-Script-Type" content="text/javascript">
+  <script src="components/loader.js"></script>
+  <script src="lib/onsenui/js/onsenui.min.js"></script>
+  <link rel="stylesheet" href="components/loader.css">
+  <link rel="stylesheet" href="lib/onsenui/css/onsenui.css">
+  <link rel="stylesheet" href="lib/onsenui/css/onsen-css-components.css">
+  <link rel="stylesheet" href="css/style.css">
+
+<!--処理-->
+  <script  type="text/javascript">
+    //ニフクラ接続
+    var applicationKey = "f5ba5a14acdaedc970aad09cecc9f3017655e4bf75d7d548d3e06df736f6377e";
+    var clientKey = "83154da0be79123a725810f8112a60e333d1cf6ac8e5741d445829bd0f7fda86";
+    var ncmb = new NCMB(applicationKey,clientKey);
+    //各クラスを変数に格納
+    var Profile = ncmb.DataStore("profile");
+    var Goal = ncmb.DataStore("goal");
+    var Nutrition = ncmb.DataStore("nutrition");
+    var Schedule = ncmb.DataStore("schedule");
+    var Weight = ncmb.DataStore("weight");
+
+    document.addEventListener('init', function(event) {
+      var page = event.target;
+
+      //新規登録ページの処理
+      if (page.matches('#signup-page')) {
+        //新規登録ボタン押下処理
+        page.querySelector('#signup-button').onclick = function(){
+          var user = new ncmb.User();
+          // ユーザー名・パスワードを取得し設定
+          user.set("userName", document.getElementById("username").value)
+              .set("password", document.getElementById("password").value)
+          user.signUpByAccount()
+              .then(function(){
+                // 登録後処理
+                 document.querySelector('#navigator').pushPage('signin.html');
+              })
+              .catch(function(err){
+                // エラー処理
+              });
+          }
+          page.querySelector('#signin-button').onclick = function(){
+            document.querySelector('#navigator').pushPage('signin.html');
+          }
+
+      //ログインページの処理
+      }else if(page.matches('#signin-page')){
+        //ログインボタン押下処理
+         page.querySelector('#signin-button').onclick = function() {
+           //ユーザー名とパスワードでログイン
+          ncmb.User.login(document.getElementById("username").value, document.getElementById("password").value)
+              .then(function(data){
+                // ログイン後処理
+                document.querySelector('#navigator').pushPage('common.html');
+              })
+              .catch(function(err){
+                // エラー処理
+                alert("ユーザー名またはパスワードが違います");
+              });
+        };
+        page.querySelector('#signup-button').onclick = function(){
+            document.querySelector('#navigator').pushPage('signup.html');
+          }
+
+      //目標ページの処理
+      }else if(page.matches('#goal-page')){
+        page.querySelector("ons-back-button").onclick = function () {
+            document.querySelector('#navigator').pushPage('signin.html');
+        };
+
+      //スケジュールページの処理
+      } else if (page.matches('#schedule-page')) {
+        var m =0;
+        var y = 0;
+        var d = 0;
+        MAXEVENT = 50;  //祝日＋予定最大数
+        SHOWWEEK = 5;   //何週表示するか
+
+        //表示スタイルオプション
+        WIDTH    = "80px";  //１マスの幅   <td width="***">
+        HEIGHT   = "60px";  //１マスの高さ <tr height="***">
+        DEFAULT  = "bordercolor='#cc8066' bgcolor='#fff9f6' style='font-size:9pt; color:#993333;'";
+          //枠線の色とフォントサイズ．デフォルトの背景色と文字色とかも<table ***>
+        TODAY    = "bgcolor='#e6fff6'";  //今日のセルオプション<td ***>
+        HOLIDAY  = "bgcolor='#ffe6e6'";  //日曜・祝日のセルオプション
+        SATURDAY = "bgcolor='#e6e6ff'";  //土曜のセルオプション
+        USUALDAY = "";  //なんでもない日のセルオプション
+        SUN = "bgcolor='#f9d9c3' style='color:#ff0000;'"; //１列目日曜のセルオプション
+        SAT = "bgcolor='#f9d9c3' style='color:#0000ff;'"; //１列目土曜のセルオプション
+        MON = "bgcolor='#f9d9c3'"; //１列目月曜～金曜のセルオプション
+
+        weekTable = new Array("sun","mon","tue","wed","thu","fri","sat");
+        monthTable= new Array(31,28,31,30,31,30,31,31,30,31,30,31); 
+        page.querySelector("ons-back-button").onclick = function () {
+            document.querySelector('#navigator').pushPage('signin.html');
+        };
+        window.onload = function(){
+          var dateObj = new Date();
+          y = dateObj.getFullYear();
+          m = dateObj.getMonth() + 1;
+          d = dateObj.getDate();
+          document.getElementById("currentDate").innerHTML = y+"年"+m+"月";
+          showCalendar(new Date(y,m-1,1));
+        }
+        
+          page.querySelector("#back-button").onclick = function () {
+            if(m <=1){
+            y = y-1;
+            m = 12;
+          }else{
+            m = m-1;
+          }
+            document.getElementById("currentDate").innerHTML = y+"年"+m+"月";
+            showCalendar(new Date(y,m-1,1));
+          }
+        page.querySelector("#next-button").onclick = function () {
+          if(m >= 12){
+            y = y+1;
+            m = 1;
+          }else{
+            m = m+1;
+          }
+            document.getElementById("currentDate").innerHTML = y+"年"+m+"月";
+            showCalendar(new Date(y,m-1,1));
+          }
+
+          
+
+          /*** スケジュール登録 notice ***
+            予定はsetSchedules()に書く．
+            newSchedule( 年，月, 日，"td セルオプション", "予定" );
+            ・日
+              －calDate( 年, 月, 週, 曜日0(sun)..6(sat))を使えば，
+                第n×曜日 形式の指定も可能です．
+            ・td セルオプション <td ここ>
+              －指定なしは""で．
+              －悪いがフォントカラーはスタイルシート("style='color:white'")で指定してくれ．
+              －同じ日に複数登録したりすると効かない事があるから注意．
+            ・"予定"
+              －HTMLタグ使えます．
+            ・祝日とあわせてMAXEVENT件までスケジュールを設定可能
+          *** notice スケジュール登録 ***/
+          function setSchedules(){
+            
+            //サンプル予定
+            newSchedule( 2009,  3,  6, "", "飲み会<br>" );
+            newSchedule( 2009,  3,  8, "", "<div align='center' style='background-color:#ff99cc;'><font color='#660000'>映画<\/font><\/div>" );
+            newSchedule( 2009,  3, 24, "", "<span style='background-color:#00ffff; color:blue'>卒業式<\/span><br>" );
+            newSchedule( 2009,  3, calDate(2009, 3, 3, 0), "", "<font color='green'>掃除当番<\/font>" ); //4月第3日曜日
+            newSchedule( 2009,  3, 16, "bgcolor='#ff6699' style='color:white'", "ちーちゃん誕生日<br>" );
+          }
+          //year年month月 第week day曜日の計算
+          function calDate( year, month, week, day ){
+          var tmp, day1;
+          
+          tmp = new Date(year, month-1, 1);
+          day1 = tmp.getDay();
+          tmp = 1 + day - day1 + week*7;
+          if( day - day1 >= 0 ) tmp = tmp - 7;
+          return tmp;
+          }
+
+          // 春分の日を求める(2000～2099)
+          function vernal( year ){
+          var tmp = Math.floor( 20.69115 + 0.242194 * (year - 2000)
+                                - Math.floor((year - 2000)/4) );
+          return tmp;
+          }
+
+          // 秋分の日を求める(2000～2099)
+          function autumn( year ){
+          var tmp = Math.floor( 23.09 + 0.242194 * (year - 2000)
+                                - Math.floor((year - 2000)/4) );
+          return tmp;
+          }
+
+          function newEvent( date, sel, name ){
+            if( si >= MAXEVENT ) return;
+            sdlDate[si]  = date;
+            sdlSel[si]   = sel;
+            sdlName[si]  = name;
+            si++;
+          }
+
+          function newSchedule( year, month, date, sel, name ){
+            newEvent( new Date( year, month-1, date ), sel, name );
+          }
+
+          function Holiday( year, month, date, name ){
+            var i, tmp;
+            month--;
+            tmp = new Date( year, month, date );
+            newEvent( tmp, HOLIDAY, name );
+            
+            //振替休日、国民の休日計算用データ登録
+            if( hi >= MAXEVENT ) return;
+            //インサーションソート
+            for( i=hi-1;
+                i>=0 && holDate[i].getMonth() == month && holDate[i].getDate() > date;
+                i-- ){
+              holDate[i+1]  =  holDate[i];
+            }
+            holDate[i+1]  =  tmp;
+            hi++;
+          }
+
+          //dateを基準にdis日動かした日を返す
+          function moveDate( date, dis ){
+            var d, m, y;
+            
+            d = date.getDate();
+            m = date.getMonth();
+            y = date.getFullYear();
+            if ( ((y%4)==0 && (y%100)!=0) || (y%400)==0 ) //うるうの判定(2000～)
+                  monthTable[1] = 29;
+            else  monthTable[1] = 28;
+            
+            d = d + dis;
+            while( d > monthTable[m]){
+              d = d - monthTable[m];
+              m++;
+              if( m > 11 ){
+                m=0;
+                y++;
+                if ( ((y%4)==0 && (y%100)!=0) || (y%400)==0 ) //うるうの判定(2000～)
+                      monthTable[1] = 29;
+                else  monthTable[1] = 28;
+              }
+            }
+            while( d < 0 ){
+              m--;
+              if( m < 0 ){
+                m=11;
+                y--;
+                if ( ((y%4)==0 && (y%100)!=0) || (y%400)==0 ) //うるうの判定(2000～)
+                      monthTable[1] = 29;
+                else  monthTable[1] = 28;
+              }
+              d = d + monthTable[m];
+            }
+            return (new Date(y,m,d));
+          }
+
+          //Main関数
+          function showCalendar( argDate ){
+            var i, j, k, tmpDate;
+            
+            tmp = argDate.getMonth() + 1;
+            
+            
+            //スケジュール登録用領域確保
+            sdlDate  = new Array(MAXEVENT);
+            sdlSel   = new Array(MAXEVENT);
+            sdlName  = new Array(MAXEVENT);
+            si = 0;
+            
+            //覚えとく
+            gBaseDate = argDate;
+            //argDateの週の日曜日から表示する
+            tmpDate = moveDate( argDate, -argDate.getDay() );
+            //"今日"を記憶
+            toDate = new Date();
+         
+            
+            //スケジュールを登録
+            setSchedules();
+            
+            
+            //描画用コード開始
+            docubuf = "<table border='3' cellspacing='0' " + DEFAULT + ">";
+            //曜日
+            docubuf += "<tr>";
+            for(i=0; i<7; i++){
+              docubuf += "<td align='center' ";
+              if(i==0)      docubuf += SUN + "><strong>" + weekTable[i] + "<\/strong>";
+              else if(i==6) docubuf += SAT + "><strong>" + weekTable[i] + "<\/strong>";
+              else          docubuf += MON + "><strong>" + weekTable[i] + "<\/strong>";
+              docubuf += "<\/td>";
+            }
+            docubuf += "<\/tr>";
+            
+            //日付
+            for(i=0; i<SHOWWEEK; i++){
+              docubuf += "<tr valign='top' height='" + HEIGHT + "'>";
+              for(j=0; j<7; j++){
+                docubuf += "<td width='" + WIDTH + "' ";
+                
+                //セル色は最後に登録したの優先．
+                for(k=si-1; k>=0; k--)
+                  if( sdlDate[k].getDate()  == tmpDate.getDate()  &&
+                      sdlDate[k].getMonth() == tmpDate.getMonth() &&
+                      sdlDate[k].getYear()  == tmpDate.getYear() &&
+                      sdlSel[k] != ""
+                    )
+                    break;
+                
+                //セル色設定
+                if( tmpDate.getDate()  == toDate.getDate()  &&
+                    tmpDate.getMonth() == toDate.getMonth() )
+                                  docubuf += TODAY     + ">";
+                                  //別に１年前の今日に色付けてもいいか
+                else if( k >= 0 ) docubuf += sdlSel[k] + ">";
+                else if(j==0)     docubuf += HOLIDAY   + ">";
+                else if(j==6)     docubuf += SATURDAY  + ">";
+                else              docubuf += USUALDAY  + ">";
+                
+                //日付表示
+                docubuf += "<strong>";
+                //年初めは年から表示
+                if( tmpDate.getDate()==1 && tmpDate.getMonth()==0 )
+                  docubuf += tmpDate.getFullYear() + "/";
+                //最初と月初めは月から表示
+                if( tmpDate.getDate()==1 || (i==0 && j==0) )
+                  docubuf += tmpDate.getMonth()+1 + "/";
+                //普通は日だけ表示
+                docubuf += tmpDate.getDate() + "<\/strong><br>";
+                
+                //スケジュール埋め込み．複数あったら全部．登録順．
+                for(k=0; k<si; k++)
+                  if( sdlDate[k].getDate()  == tmpDate.getDate()
+                      && sdlDate[k].getMonth() == tmpDate.getMonth()
+                      && sdlDate[k].getYear()  == tmpDate.getYear()
+                    )
+                    docubuf += sdlName[k];
+                
+                //日を進める
+                tmpDate = moveDate( tmpDate, 1 );
+                
+                docubuf += "<\/td>";
+              }
+              docubuf += "<\/tr>";
+            }
+            docubuf += "<\/table>";
+            
+            divSdlCal.innerHTML = docubuf;
+          }
+          
+          // -->
+
+      //アルバムページの処理
+      }else if(page.matches('#album-page')){
+         page.querySelector("ons-back-button").onclick = function () {
+            document.querySelector('#navigator').pushPage('signin.html');
+        };
+        
+      
+      //ボディチェックページの処理
+      }else if(page.matches('#weight-page')){
+        var currentUser = ncmb.User.getCurrentUser();
+        if (currentUser) { 
+          page.querySelector("ons-back-button").onclick = function () {
+              document.querySelector('#navigator').pushPage('signin.html');
+          };
+          page.querySelector("#weight-button").onclick = function() {
+            var weight = new Weight;
+            var date = new Date();
+            weight.set("weight",document.getElementById("weight-inp").value)
+                  .set("date",date)
+                  .set("user_id",currentUser.get("objectId"))
+                  .save();
+            document.querySelector("ons-tab[page='weight.html']").click();
+          }
+        }
+      //カロリータンパク質ページの処理
+      }else if(page.matches('#nutrition-page')){
+         page.querySelector("ons-back-button").onclick = function () {
+            document.querySelector('#navigator').pushPage('signin.html');
+        };
+
+      //プロフィールページの処理
+      }else if(page.matches('#profile-page')){
+         page.querySelector("ons-back-button").onclick = function () {
+            document.querySelector('#navigator').pushPage('signin.html');
+        };
+      }
+    });
+
+    if (ons.platform.isIPhoneX()) {
+      document.documentElement.setAttribute('onsflag-iphonex-portrait', '');
+      document.documentElement.setAttribute('onsflag-iphonex-landscape', '');
+    }
+  </script>
+</head>
+
+
+<!--中身-->
+<body>
+  <!-- 初期ページの設定 -->
+  <!-- page="######.html"の#部分を自分の画面に変更 -->
+  <ons-navigator id="navigator" page="common.html"></ons-navigator>
+
+  <!-- 共通画面 -->
+  <ons-template id="common.html">
+    <ons-page id="common-page">
+      <ons-tabbar>
+        <ons-tab page="goal.html" icon="fa-flag"></ons-tab>
+        <ons-tab page="schedule.html" icon="fa-calendar"></ons-tab>
+        <ons-tab page="album.html" icon="fa-picture-o"></ons-tab>
+        <ons-tab page="weight.html" icon="fa-line-chart"></ons-tab>
+        <ons-tab page="nutrition.html" icon="fa-cutlery"></ons-tab>
+        <ons-tab page="profile.html" icon="fa-user-circle-o"></ons-tab>
+      </ons-tabbar>
+    </ons-page>
+  </ons-template>
+
+  <!--新規登録画面-->
+  <ons-template id="signup.html">
+    <ons-page id="signup-page">
+      <div class="background" style="background-color: yellow;"></div>
+      <div class="content" style="text-align: center;" >
+        <img src="img/logo.png" style="width:250px; height:250px">
+        <p style="bold; margin-top:30px;font-size:20px">新規登録</p>
+        <div class="signup">
+          <p style="text-align:left; margin-left:85px;">ユーザー名</p>
+          <ons-input id="username" placeholder="username" modifier="underbar" style="background-color:white;"></ons-input>
+          <p style="text-align:left; margin-left:85px">パスワード</p>
+          <ons-input id="password" placeholder="password" modifier="underbar" style="background-color:white"></ons-input><br>
+        </div>
+        <br>
+        <ons-button id="signup-button" style="background-color:white; color:black;border-width:1px">新規登録</ons-button><br>
+        <ons-button id="signin-button" modifier="quiet">ログインはこちら</ons-button>
+      </div>
+    </ons-page>
+  </ons-template>
+
+  <!--ログイン画面-->
+  <ons-template id="signin.html">
+    <ons-page id="signin-page">
+    <div class="background" style="background-color: yellow;"></div>
+      <div class="content" style="text-align: center;" >
+        <img src="img/logo.png" style="width:250px; height:250px">
+        <p style="bold; margin-top:30px;font-size:20px">ログイン</p>
+        <div class="signup">
+          <p style="text-align:left; margin-left:85px;">ユーザー名</p>
+          <ons-input id="username" placeholder="username" modifier="underbar" style="background-color:white;"></ons-input>
+          <p style="text-align:left; margin-left:85px">パスワード</p>
+          <ons-input id="password" placeholder="password" modifier="underbar" style="background-color:white"></ons-input><br>
+        </div>
+        <br>
+        <ons-button id="signin-button" style="background-color:white; color:black;border-width:1px">ログイン</ons-button><br>
+        <ons-button id="signup-button" modifier="quiet">新規登録はこちら</ons-button>
+      </div>
+    </ons-page>
+  </ons-template>
+
+  <!---目標画面-->
+  <ons-template id="goal.html">
+    <ons-page id="goal-page">
+      <ons-toolbar>
+        <div class="left"><ons-back-button>logout</ons-back-button></div>
+        <div class="center">目標</div>
+      </ons-toolbar>
+      <!-- <div class="content" style="text-align: center">
+      <ons-button id="home-button">新規登録</ons-button>
+      </div> -->
+    </ons-page>
+  </ons-template>
+
+  <!--スケジュール画面-->
+  <ons-template id="schedule.html">
+    <ons-page id="schedule-page">
+      <div class="background" style="background-color: white;"></div>
+      <ons-toolbar style="background-color: yellow;">
+        <div class="left"><ons-back-button>logout</ons-back-button></div>
+        <div class="center">スケジュール</div>
+        </div>
+      </ons-toolbar>
+      <div style="position:relative; width:100%; height:90%;">
+      <div class ="month" style="text-align: center;">
+      <h1> <span id="currentDate"></span></h1>
+      </div>
+      <div id="divSdlCal"></div><!--
+      <form name="formSdlCal" action="javascript:showCalendar(new Date(document.formSdlCal.dateInput.value));">
+      <input type="button" value="◀BACK" onclick="showCalendar(moveDate(gBaseDate,-7*(SHOWWEEK-1)))">
+      <input type="button" value="今日" onclick="showCalendar(new Date())">
+      <input type="button" value="NEXT▶" onclick="showCalendar(moveDate(gBaseDate,7*(SHOWWEEK-1)))">
+      <br>
+      date
+      <input type="text" name="dateInput" value="">
+      <input type="button" value="表示" onclick="showCalendar(new Date(document.formSdlCal.dateInput.value))">
+      -->
+          </script>
+            <div style="text-align: center; position:absolute;bottom:20px;width:100%;">
+              <ons-button id="back-button" style="background-color:silver;color:black; text-align:left;">◀BACK</ons-button>
+              <ons-button id="next-button" style=" text-align:right;background-color: silver; color:black; ">NEXT▶</ons-button>
+            </div>
+            <!-- <div class="content" style="text-align: center">
+              <ons-button id="home-button">ホーム</ons-button>
+            </div> -->
+            </div>
+          </ons-page>
+        </ons-template>
+
+  <!---アルバム画面-->
+  <ons-template id="album.html">
+    <ons-page id="album-page">
+      <ons-toolbar>
+        <div class="left"><ons-back-button>logout</ons-back-button></div>
+        <div class="center">アルバム</div>
+      </ons-toolbar>
+      <!-- <div class="content" style="text-align: center">
+        <ons-button id="home-button">ホーム</ons-button>
+      </div> -->
+    </ons-page>
+  </ons-template>
+
+  <!---ボディチェック画面-->
+  <ons-template id="weight.html">
+    <ons-page id="weight-page">
+      <ons-toolbar>
+        <div class="left"><ons-back-button>logout</ons-back-button></div>
+        <div class="center">ボディチェック</div>
+      </ons-toolbar>
+      体重：<ons-input id="weight-inp" modifier="underbar"></ons-input>
+      <ons-button id="weight-button">設定</ons-button>
+      <p>BMI:</p>
+      <p id="bmi"></p>
+    </ons-page>
+  </ons-template>
+
+  <!---カロリータンパク質画面-->
+  <ons-template id="nutrition.html">
+    <ons-page id="nutrition-page">
+      <ons-toolbar>
+        <div class="left"><ons-back-button>logout</ons-back-button></div>
+        <div class="center">カロリータンパク質</div>
+      </ons-toolbar>
+      <!-- <div class="content" style="text-align: center">
+        <ons-button id="home-button">ホーム</ons-button>
+      </div> -->
+    </ons-page>
+  </ons-template>
+
+  <!---プロフィール画面-->
+  <ons-template id="profile.html">
+    <ons-page id="profile-page">
+      <ons-toolbar>
+        <div class="left"><ons-back-button>logout</ons-back-button></div>
+        <div class="center">プロフィール</div>
+      <!-- </ons-toolbar>
+      <div class="content" style="text-align: center">
+        <ons-button id="home-button">ホーム</ons-button>
+      </div> -->
+    </ons-page>
+  </ons-template>
+</body>
+</html>
