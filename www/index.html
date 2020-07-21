@@ -27,19 +27,19 @@
     var Nutrition = ncmb.DataStore("nutrition");
     var Schedule = ncmb.DataStore("schedule");
     var Weight = ncmb.DataStore("weight");
-
+    
 
     document.addEventListener('init',function(event) {
       var page = event.target;
-
+      
       //新規登録ページの処理
       if (page.matches('#signup-page')){
         //新規登録ボタン押下処理
         page.querySelector('#signup-button').onclick = function(){
           var user = new ncmb.User();
           // ユーザー名・パスワードを取得し設定
-          user.set("userName", document.getElementById("username").value)
-              .set("password", document.getElementById("password").value)
+          user.set("userName", document.getElementById("newusername").value)
+              .set("password", document.getElementById("newpassword").value)
           user.signUpByAccount()
               .then(function(){
                 // 登録後処理
@@ -68,7 +68,7 @@
         };
         page.querySelector('#signup-button').onclick = function(){
             document.querySelector('#navigator').pushPage('signup.html');
-          }
+          };
 
       //目標ページの処理
       }else if(page.matches('#goal-page')){
@@ -149,9 +149,7 @@
           page.querySelector("ons-back-button").onclick = function () {
             document.querySelector('#navigator').pushPage('signin.html');
           };
-          page.querySelector("#detail-button").onclick = function () {
-            document.querySelector('#navigator').pushPage('scheduledetail.html');
-          };
+        
         var m = 0;
         var y = 0;
         var d = 0;
@@ -177,19 +175,35 @@
         y = dateObj.getFullYear();
         m = dateObj.getMonth() + 1;
         d = dateObj.getDate();
+        tmpday = new Array("","","","","","","");
+        for(w=0; w<5; w++){
+          tmpday[w] = new Array("","","","","","","","","");
+        }
         document.getElementById("currentDate").innerHTML = y+"年"+m+"月";
         showCalendar(new Date(y,m-1,1));
-        
+        //for(i=0; i<SHOWWEEK; i++){
+        //  for(j=0; j<7; j++){
+        //    page.querySelector("#detail-buttona" + i + "b" + j).onclick = function () {
+        //      var ti;
+        //      var tj;
+        //      ti = i;
+        //      tj = j;
+              //document.querySelector('#navigator').pushPage('scheduledetail.html');////{data:{y:tbl2[i][j]}});
+        //      document.getElementById("currentDate").innerHTML = y + "年" + m + "月" + tmpday[ti][tj] + "日";
+        //   }
+        // }
+        //}
+
         page.querySelector("#back-button").onclick = function () {
-           if(m <=1){
-              y = y-1;
-              m = 12;
-            }else{
-              m = m-1;
-            }
-              document.getElementById("currentDate").innerHTML = y+"年"+m+"月";
-              showCalendar(new Date(y,m-1,1));
-            }
+          if(m <=1){
+            y = y-1;
+            m = 12;
+          }else{
+            m = m-1;
+          }
+          document.getElementById("currentDate").innerHTML = y+"年"+m+"月";
+          showCalendar(new Date(y,m-1,1));
+        }
         
         page.querySelector("#next-button").onclick = function () {
           if(m >= 12){
@@ -198,26 +212,25 @@
           }else{
             m = m+1;
           }
-            document.getElementById("currentDate").innerHTML = y+"年"+m+"月";
-            showCalendar(new Date(y,m-1,1));
-          }
+          document.getElementById("currentDate").innerHTML = y+"年"+m+"月";
+          showCalendar(new Date(y,m-1,1));
+        }
           
-          /*** スケジュール登録 notice ***
-            予定はsetSchedules()に書く．
-            newSchedule( 年，月, 日，"td セルオプション", "予定" );
-            ・日
-              －calDate( 年, 月, 週, 曜日0(sun)..6(sat))を使えば，
-                第n×曜日 形式の指定も可能です．
-            ・td セルオプション <td ここ>
-              －指定なしは""で．
-              －悪いがフォントカラーはスタイルシート("style='color:white'")で指定してくれ．
-              －同じ日に複数登録したりすると効かない事があるから注意．
-            ・"予定"
-              －HTMLタグ使えます．
-            ・祝日とあわせてMAXEVENT件までスケジュールを設定可能
+        /*** スケジュール登録 notice ***
+          予定はsetSchedules()に書く．
+          newSchedule( 年，月, 日，"td セルオプション", "予定" );
+          日
+          －calDate( 年, 月, 週, 曜日0(sun)..6(sat))を使えば，
+          第n×曜日 形式の指定も可能です．
+          td セルオプション <td ここ>
+          －指定なしは""で．
+          －悪いがフォントカラーはスタイルシート("style='color:white'")で指定してくれ．
+          －同じ日に複数登録したりすると効かない事があるから注意．
+          "予定"
+          －HTMLタグ使えます．
+          祝日とあわせてMAXEVENT件までスケジュールを設定可能
           *** notice スケジュール登録 ***/
           function setSchedules(){
-            
             //サンプル予定
             newSchedule( 2009,  3,  6, "", "飲み会<br>" );
             newSchedule( 2009,  3,  8, "", "<div align='center' style='background-color:#ff99cc;'><font color='#660000'>映画<\/font><\/div>" );
@@ -225,29 +238,27 @@
             newSchedule( 2009,  3, calDate(2009, 3, 3, 0), "", "<font color='green'>掃除当番<\/font>" ); //4月第3日曜日
             newSchedule( 2009,  3, 16, "bgcolor='#ff6699' style='color:white'", "ちーちゃん誕生日<br>" );
           }
+
           //year年month月 第week day曜日の計算
           function calDate( year, month, week, day ){
-          var tmp, day1;
-          
-          tmp = new Date(year, month-1, 1);
-          day1 = tmp.getDay();
-          tmp = 1 + day - day1 + week*7;
-          if( day - day1 >= 0 ) tmp = tmp - 7;
-          return tmp;
+            var tmp, day1;
+            tmp = new Date(year, month-1, 1);
+            day1 = tmp.getDay();
+            tmp = 1 + day - day1 + week*7;
+            if( day - day1 >= 0 ) tmp = tmp - 7;
+            return tmp;
           }
 
           // 春分の日を求める(2000～2099)
           function vernal( year ){
-          var tmp = Math.floor( 20.69115 + 0.242194 * (year - 2000)
-                                - Math.floor((year - 2000)/4) );
-          return tmp;
+            var tmp = Math.floor( 20.69115 + 0.242194 * (year - 2000)- Math.floor((year - 2000)/4) );
+            return tmp;
           }
 
           // 秋分の日を求める(2000～2099)
           function autumn( year ){
-          var tmp = Math.floor( 23.09 + 0.242194 * (year - 2000)
-                                - Math.floor((year - 2000)/4) );
-          return tmp;
+            var tmp = Math.floor( 23.09 + 0.242194 * (year - 2000)- Math.floor((year - 2000)/4) );
+            return tmp;
           }
 
           function newEvent( date, sel, name ){
@@ -271,9 +282,7 @@
             //振替休日、国民の休日計算用データ登録
             if( hi >= MAXEVENT ) return;
             //インサーションソート
-            for( i=hi-1;
-                i>=0 && holDate[i].getMonth() == month && holDate[i].getDate() > date;
-                i-- ){
+            for( i=hi-1; i>=0 && holDate[i].getMonth() == month && holDate[i].getDate() > date; i-- ){
               holDate[i+1]  =  holDate[i];
             }
             holDate[i+1]  =  tmp;
@@ -283,7 +292,6 @@
           //dateを基準にdis日動かした日を返す
           function moveDate( date, dis ){
             var d, m, y;
-            
             d = date.getDate();
             m = date.getMonth();
             y = date.getFullYear();
@@ -320,9 +328,7 @@
           //Main関数
           function showCalendar( argDate ){
             var i, j, k, tmpDate;
-            
             tmp = argDate.getMonth() + 1;
-            
             
             //スケジュール登録用領域確保
             sdlDate  = new Array(MAXEVENT);
@@ -336,19 +342,15 @@
             tmpDate = moveDate( argDate, -argDate.getDay() );
             //"今日"を記憶
             toDate = new Date();
-         
-            
             //スケジュールを登録
             setSchedules();
-            
-            
             //描画用コード開始
             docubuf = "<table border='3' cellspacing='0' " + DEFAULT + ">";
             //曜日
             docubuf += "<tr>";
             for(i=0; i<7; i++){
               docubuf += "<td align='center' ";
-              if(i==0)      docubuf += SUN + "><strong>" + weekTable[i] + "<\/strong>";
+              if(i==0)      docubuf += SUN + "><strong>" + weekTable[i] +     "<\/strong>";
               else if(i==6) docubuf += SAT + "><strong>" + weekTable[i] + "<\/strong>";
               else          docubuf += MON + "><strong>" + weekTable[i] + "<\/strong>";
               docubuf += "<\/td>";
@@ -360,6 +362,8 @@
               docubuf += "<tr valign='top' height='" + HEIGHT + "'>";
               for(j=0; j<7; j++){
                 docubuf += "<td width='" + WIDTH + "' ";
+                
+                tmpday[i][j] = tmpDate.getDate();
                 
                 //セル色は最後に登録したの優先．
                 for(k=si-1; k>=0; k--)
@@ -381,7 +385,9 @@
                 else              docubuf += USUALDAY  + ">";
                 
                 //日付表示
-                docubuf += "<ons-button id='detail-button' modifier='quiet'>";
+                //docubuf += "<ons-button id='detail-buttona" + i + "b" + j + "' modifier='quiet'>";
+                // docubuf += "<ons-back-button>  BACK </ons-back-button>"
+                docubuf += "<ons-button ng-click=\"app.navi.pushPage('scheduledetail.html')\" modifier='quiet' >"
                 //年初めは年から表示
                 if( tmpDate.getDate()==1 && tmpDate.getMonth()==0 )
                   docubuf += tmpDate.getFullYear() + "/";
@@ -389,6 +395,7 @@
                 if( tmpDate.getDate()==1 || (i==0 && j==0) )
                   docubuf += tmpDate.getMonth()+1 + "/";
                 //普通は日だけ表示
+                // docubuf += tmpDate.getDate() + "<br>";
                 docubuf += tmpDate.getDate() + "<br>";
                 
                 //スケジュール埋め込み．複数あったら全部．登録順．
@@ -396,23 +403,48 @@
                   if( sdlDate[k].getDate() == tmpDate.getDate()
                       && sdlDate[k].getMonth() == tmpDate.getMonth()
                       && sdlDate[k].getYear() == tmpDate.getYear()
-                    )
-                    docubuf += sdlName[k];
-                
+                  )
+                docubuf += sdlName[k];
+
                 //日を進める
+                docubuf += "<\/ons-button>";
                 tmpDate = moveDate(tmpDate,1);
                 
-                docubuf += "<\/ons-button><\/td>";
+                docubuf += "<\/td>";
               }
               docubuf += "<\/tr>";
             }
             docubuf += "<\/table>";
-            
+            // console.log("XXXXXXXX");
+            // console.log(docubuf);
+            // console.log("XXXXXXXX");
             divSdlCal.innerHTML = docubuf;
           }
         }
-          
+        
+      //スケジュール詳細ページの処理
+      }else if(page.matches('#scheduledetail-page')){
+        var currentUser = ncmb.User.getCurrentUser();
+        if (currentUser) {
+        page.querySelector("ons-back-button").onclick = function () {
+            document.querySelector('#navigator').popPage;
+          };
+        page.querySelector("#new-button").onclick = function() {
+          document.querySelector('#navigator').pushPage('scheduleregister.html');
+        };
+        
+        
+        document.getElementById("currentDate2").innerHTML = "年"+tmpm+"月"+tmpd+"日";
 
+        }
+      //スケジュール登録ページの処理
+      }else if(page.matches('scheduleregister-page')){
+        var currentUser = ncmb.User.getCurrentUser();
+        if (currentUser) {
+        page.querySelector("ons-back-button").onclick = function () {
+            document.querySelector('#navigator').popPage;
+          };
+        }
       //アルバムページの処理
       }else if(page.matches('#album-page')){
          page.querySelector("ons-back-button").onclick = function () {
@@ -514,7 +546,6 @@
       //プロフィールページの処理
       }else if(page.matches('#profile-page')){
         
-
         // ログアウト処理
         page.querySelector("ons-back-button").onclick = function () {
             document.querySelector('#navigator').pushPage('signin.html');
@@ -527,10 +558,7 @@
         page.querySelector("#pro-weight-range").onclick = function() {
             document.getElementById('pro-weight-inp').value=this.value
         }
-      };// ここまで
-
-      
-      
+      };
     });
 
     if (ons.platform.isIPhoneX()) {
@@ -595,7 +623,6 @@
           })
       }, false);
     }
-
           // dataURIをBlobに変換
       function dataURItoBlob(dataURI) {
           var byteString;
@@ -610,60 +637,50 @@
           }
           return new Blob([ia], {type:mimeString});
       }
-
-
-          function clickBtn(){
-              navigator.camera.getPicture(onSuccess, onFail, { quality : 100, 
-                destinationType : Camera.DestinationType.DATA_URL, 
-                sourceType : Camera.PictureSourceType.CAMERA, 
-                encodingType: Camera.EncodingType.JPEG,
-                targetWidth: 120,
-                targetHeight: 150,
-                popoverOptions: CameraPopoverOptions,
-                saveToPhotoAlbum: false });
-
-                
-
-        }
-
-        function onSuccess (imageData) {
-                      var byteCharacters = toBlob(imageData);
-                      ncmb.File.upload(fileName, byteCharacters)
-                      .then(function(res){
-                        console.log("アップロードできた");
-                      })
-                      .catch(function(err){
-                        console.log('アップロード失敗');
-                      });
-                  }
-            
-        
-
+      function clickBtn(){
+        navigator.camera.getPicture(onSuccess, onFail, { quality : 100, 
+          destinationType : Camera.DestinationType.DATA_URL, 
+          sourceType : Camera.PictureSourceType.CAMERA, 
+          encodingType: Camera.EncodingType.JPEG,
+          targetWidth: 120,
+          targetHeight: 150,
+          popoverOptions: CameraPopoverOptions,
+          saveToPhotoAlbum: false });
+      }
+      function onSuccess (imageData) {
+        var byteCharacters = toBlob(imageData);
+        ncmb.File.upload(fileName, byteCharacters)
+        .then(function(res){
+          console.log("アップロードできた");
+        })
+        .catch(function(err){
+          console.log('アップロード失敗');
+        });
+      }
       function onFail(message) {
-          ons.notification.alert({
-                  message: message,
-                  title: "Error",
-                  buttonLabel: "OK",
-                  animation: "default"
-              });
+        ons.notification.alert({
+          message: message,
+          title: "Error",
+          buttonLabel: "OK",
+          animation: "default"
+        });
       }
-
       function toBlob(base64) {
-          var bin = atob(base64.replace(/^.*,/, ""));
-          var buffer = new Uint8Array(bin.length);
-          for (var i = 0; i < bin.length; i++) {
-              buffer[i] = bin.charCodeAt(i);
-          }
-          try {
-              var blob = new Blob([buffer.buffer], {
-                  type: "image/jpeg"
-              });
-          } catch (e) {
-              return false;
-          }
-          return blob;
+        var bin = atob(base64.replace(/^.*,/, ""));
+        var buffer = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) {
+            buffer[i] = bin.charCodeAt(i);
+        }
+        try {
+            var blob = new Blob([buffer.buffer], {
+                type: "image/jpeg"
+            });
+        } catch (e) {
+            return false;
+        }
+        return blob;
       }
-document.addEventListener("deviceready", onDiviceReady, false);
+//document.addEventListener("deviceready", onDiviceReady, false);
   </script>
 </head>
 
@@ -672,7 +689,7 @@ document.addEventListener("deviceready", onDiviceReady, false);
 <body>
   <!-- 初期ページの設定 -->
   <!-- page="######.html"の#部分を自分の画面に変更 -->
-  <ons-navigator id="navigator" page="signin.html"></ons-navigator>
+  <ons-navigator id="navigator" var="app.navi" page="signin.html"></ons-navigator>
 
   <!-- 共通画面 -->
   <ons-template id="common.html">
@@ -697,9 +714,9 @@ document.addEventListener("deviceready", onDiviceReady, false);
         <p style="bold; margin-top:30px;font-size:20px">新規登録</p>
         <div class="signup">
           <p style="text-align:left; margin-left:85px;">ユーザー名</p>
-          <ons-input id="username" placeholder="username" modifier="underbar" style="background-color:white;"></ons-input>
+          <ons-input id="newusername" placeholder="username" modifier="underbar" style="background-color:white;"></ons-input>
           <p style="text-align:left; margin-left:85px">パスワード</p>
-          <ons-input id="password" placeholder="password" modifier="underbar" style="background-color:white"></ons-input><br>
+          <ons-input id="newpassword" placeholder="password" modifier="underbar" style="background-color:white"></ons-input><br>
         </div>
         <br>
         <ons-button id="signup-button" style="background-color:white; color:black;border-width:1px">新規登録</ons-button><br>
@@ -774,6 +791,7 @@ document.addEventListener("deviceready", onDiviceReady, false);
           <h1> <span id="currentDate"></span></h1>
         </div>
         <div id="divSdlCal"></div>
+        <ons-button ng-click="#navigator.pushPage('Scheduledetail.html')">TEST</ons-button>
         <div style="text-align: center; position:absolute;bottom:20px;width:100%;"> 
           <ons-button id="back-button" style="background-color:silver;color:black; text-align:left">◀BACK</ons-button> 
           <ons-button id="next-button" style=" text-align:right;background-color: silver; color:black">NEXT▶</ons-button> 
@@ -784,9 +802,31 @@ document.addEventListener("deviceready", onDiviceReady, false);
   <!---スケジュール詳細画面-->
   <ons-template id="scheduledetail.html">
     <ons-page id="scheduledetail-page">
+      <div class="background" style="background-color: white;"></div>
+      <ons-toolbar  style="background-color: yellow;">
+        <div class="left"><ons-back-button></ons-back-button></div>
+        <div class="center">スケジュール</div>
+      </ons-toolbar>
+      <div style="position:relative; width:100%; height:90%;">
+        <div class ="month" style="text-align: center;">
+          <h1> <span id="currentDate2"></span></h1>
+        </div>
+        
+      </div>
+      <ons-button id="new-button" style="text-align:center; position: fixed; left:60px; right:60px ;bottom:10px; background-color:#ffff00; color:#000000; border-width:1px; border-radius:10px;">追加</ons-button>
     </ons-page>
   </ons-template>
-
+  <!--スケジュール登録画面-->
+  <ons-template id="scheduleregister.html">
+    <ons-page id="scheduleregister-page">
+      <div class="background" style="background-color: white;"></div>
+      <ons-toolbar  style="background-color: yellow;">
+        <div class="left"><ons-back-button></ons-back-button></div>
+        <div class="center">スケジュール</div>
+      </ons-toolbar>
+      
+    </ons-page>
+  </ons-template>
   <!---アルバム画面-->
   <ons-template id="album.html">
     <ons-page id="album-page">
@@ -896,7 +936,7 @@ document.addEventListener("deviceready", onDiviceReady, false);
     }
   </style>
 
-  <!---プロフィール画面              ここから-->
+  <!---プロフィール画面-->
   <ons-template id="profile.html">
     <ons-page id="profile-page">
       <ons-toolbar>
