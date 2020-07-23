@@ -175,24 +175,45 @@
         y = dateObj.getFullYear();
         m = dateObj.getMonth() + 1;
         d = dateObj.getDate();
-        tmpday = new Array("","","","","","","");
+        // masatokg global glbl_day[行][列]:格納予定値=日付オブジェクトDate
+        var glbl_day = new Array("","","","","","","");
         for(w=0; w<5; w++){
-          tmpday[w] = new Array("","","","","","","","","");
+          glbl_day[w] = new Array("","","","","","","","","");
         }
+
+
         document.getElementById("currentDate").innerHTML = y+"年"+m+"月";
         showCalendar(new Date(y,m-1,1));
-        //for(i=0; i<SHOWWEEK; i++){
+
+        for(i=0; i<SHOWWEEK; i++){
+         for(j=0; j<7; j++){
+            // masatokg
+            page.querySelector("#detail-buttona" + i + "b" + j).onclick =  function (event) { 
+                document.querySelector('#navigator').pushPage('scheduledetail.html');//// データを引き渡すならオプションの第２引数を使う
+                // 選択した行列番号をid文字列から取得
+                mdarray = event.target.id.toString().replace('detail-buttona','').split('b');
+                cal_row = Number(mdarray[0]);
+                cal_col = Number(mdarray[1]);
+                // 選択した日付のオブジェクト
+                calDate = glbl_day[cal_row][cal_col];
+                // innerHTML(currentDate)に選択した日付を表示
+                document.getElementById("currentDate").innerHTML = y + "年" + (calDate.getMonth()+1) + "月" + calDate.getDate() + "日 ";
+              };
+          }
+        }
+
+        // for(i=0; i<SHOWWEEK; i++){
         //  for(j=0; j<7; j++){
-        //    page.querySelector("#detail-buttona" + i + "b" + j).onclick = function () {
-        //      var ti;
-        //      var tj;
-        //      ti = i;
-        //      tj = j;
-              //document.querySelector('#navigator').pushPage('scheduledetail.html');////{data:{y:tbl2[i][j]}});
-        //      document.getElementById("currentDate").innerHTML = y + "年" + m + "月" + tmpday[ti][tj] + "日";
+        //    var idString = "#detail-buttona" + i + "b" + j;
+        //     page.querySelector("#detail-buttona" + i + "b" + j).onclick = function (i, j) {
+        //       document.querySelector('#navigator').pushPage('scheduledetail.html');////{data:{y:tbl2[i][j]}});
+        //      document.getElementById("currentDate").innerHTML = y + "年" + m + "月" + "日"+"?" + i + idString;
+        //    }
         //   }
         // }
-        //}
+
+
+
 
         page.querySelector("#back-button").onclick = function () {
           if(m <=1){
@@ -215,7 +236,7 @@
           document.getElementById("currentDate").innerHTML = y+"年"+m+"月";
           showCalendar(new Date(y,m-1,1));
         }
-          
+
         /*** スケジュール登録 notice ***
           予定はsetSchedules()に書く．
           newSchedule( 年，月, 日，"td セルオプション", "予定" );
@@ -341,7 +362,7 @@
             //argDateの週の日曜日から表示する
             tmpDate = moveDate( argDate, -argDate.getDay() );
             //"今日"を記憶
-            toDate = new Date();
+            cal_toDayDate = new Date();
             //スケジュールを登録
             setSchedules();
             //描画用コード開始
@@ -356,14 +377,14 @@
               docubuf += "<\/td>";
             }
             docubuf += "<\/tr>";
-            
             //日付
             for(i=0; i<SHOWWEEK; i++){
               docubuf += "<tr valign='top' height='" + HEIGHT + "'>";
               for(j=0; j<7; j++){
                 docubuf += "<td width='" + WIDTH + "' ";
                 
-                tmpday[i][j] = tmpDate.getDate();
+                // masatokg
+                glbl_day[i][j] = tmpDate; // カレンダーの各行・列セルに対応した日付オブジェクトを格納
                 
                 //セル色は最後に登録したの優先．
                 for(k=si-1; k>=0; k--)
@@ -373,10 +394,13 @@
                       sdlSel[k] != ""
                     )
                     break;
-                
+                cal_Today = cal_toDayDate.getDate();
+                cal_Month = cal_toDayDate.getMonth();
                 //セル色設定
-                if( tmpDate.getDate()  == toDate.getDate()  &&
-                    tmpDate.getMonth() == toDate.getMonth() )
+                // if( tmpDate.getDate()  == cal_Today  &&
+                //     tmpDate.getMonth() == cal_Month )
+                if( tmpDate.getDate()  == cal_toDayDate.getDate()  &&
+                    tmpDate.getMonth() == cal_toDayDate.getMonth() )
                                   docubuf += TODAY     + ">";
                                   //別に１年前の今日に色付けてもいいか
                 else if( k >= 0 ) docubuf += sdlSel[k] + ">";
@@ -385,9 +409,9 @@
                 else              docubuf += USUALDAY  + ">";
                 
                 //日付表示
-                //docubuf += "<ons-button id='detail-buttona" + i + "b" + j + "' modifier='quiet'>";
-                // docubuf += "<ons-back-button>  BACK </ons-back-button>"
-                docubuf += "<ons-button ng-click=\"app.navi.pushPage('scheduledetail.html')\" modifier='quiet' >"
+                // docubuf += "<ons-button id='detail-buttona" + i + "b" + j + "' modifier='quiet' >";
+                // masatokg id名はイベントメソッドで使用するので変更時注意
+                docubuf += "<ons-button id='detail-buttona" + i + "b" + j + "' modifier='quiet'> ";
                 //年初めは年から表示
                 if( tmpDate.getDate()==1 && tmpDate.getMonth()==0 )
                   docubuf += tmpDate.getFullYear() + "/";
@@ -414,10 +438,9 @@
               }
               docubuf += "<\/tr>";
             }
+
+
             docubuf += "<\/table>";
-            // console.log("XXXXXXXX");
-            // console.log(docubuf);
-            // console.log("XXXXXXXX");
             divSdlCal.innerHTML = docubuf;
           }
         }
@@ -689,7 +712,7 @@
 <body>
   <!-- 初期ページの設定 -->
   <!-- page="######.html"の#部分を自分の画面に変更 -->
-  <ons-navigator id="navigator" var="app.navi" page="signin.html"></ons-navigator>
+  <ons-navigator id="navigator" page="signin.html"></ons-navigator>
 
   <!-- 共通画面 -->
   <ons-template id="common.html">
@@ -791,7 +814,6 @@
           <h1> <span id="currentDate"></span></h1>
         </div>
         <div id="divSdlCal"></div>
-        <ons-button ng-click="#navigator.pushPage('Scheduledetail.html')">TEST</ons-button>
         <div style="text-align: center; position:absolute;bottom:20px;width:100%;"> 
           <ons-button id="back-button" style="background-color:silver;color:black; text-align:left">◀BACK</ons-button> 
           <ons-button id="next-button" style=" text-align:right;background-color: silver; color:black">NEXT▶</ons-button> 
@@ -967,6 +989,5 @@
       </div>
     </ons-page>
   </ons-template>
-    
 </body>
 </html>
